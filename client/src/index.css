@@ -1,0 +1,118 @@
+* {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+body {
+  font-family: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  background: #f0f2f5;
+  color: #1c1e21;
+}
+
+/* Auth pages */
+.auth-page {
+  min-height: 100vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 16px;
+  background: linear-gradient(135deg, #667eea, #764ba2);
+}
+
+.auth-card {
+  width: 100%;
+  max-width: 380px;
+  background: #fff;
+  padding: 32px 28px;
+  border-radius: 14px;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2);
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.auth-card h1 {
+  font-size: 1.6rem;
+}
+
+.subtitle {
+  color: #65676b;
+  font-size: 0.9rem;
+}
+
+.auth-card input {
+  padding: 12px 14px;
+  border: 1px solid #ccd0d5;
+  border-radius: 8px;
+  font-size: 1rem;
+  outline: none;
+}
+
+.auth-card input:focus {
+  border-color: #667eea;
+}
+
+button {
+  padding: 12px;
+  border: none;
+  border-radius: 8px;
+  background: #667eea;
+  color: #fff;
+  font-size: 1rem;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+button:hover:not(:disabled) {
+  background: #5568d3;
+}
+
+button:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.error {
+  background: #fdecea;
+  color: #b3261e;
+  padding: 10px 12px;
+  border-radius: 8px;
+  font-size: 0.9rem;
+}
+
+.switch {
+  text-align: center;
+  font-size: 0.9rem;
+  color: #65676b;
+}
+
+.switch a {
+  color: #667eea;
+  font-weight: 600;
+  text-decoration: none;
+}
+
+/* Temporary chat page */
+.placeholder {
+  max-width: 500px;
+  margin: 40px auto;
+  padding: 24px;
+  background: #fff;
+  border-radius: 12px;
+}
+
+.placeholder header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 20px;
+}
+
+.placeholder header button {
+  padding: 8px 14px;
+}
+
+.placeholder ul {
+  margin: 12px 0 16px 20px;
+}
