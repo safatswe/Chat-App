@@ -1,3 +1,4 @@
+/* eslint-disable react-refresh/only-export-components */
 import { createContext, useContext, useEffect, useState } from "react";
 import { io } from "socket.io-client";
 import { useAuth } from "./AuthContext";
@@ -38,6 +39,8 @@ export function SocketProvider({ children }) {
     });
     newSocket.on("onlineUsers", (ids) => setOnlineUsers(ids));
 
+    // Storing an external connection in state is intentional here
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     setSocket(newSocket);
 
     // Cleanup: runs on logout (or when the app unmounts)

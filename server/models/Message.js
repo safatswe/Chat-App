@@ -18,11 +18,16 @@ const messageSchema = new mongoose.Schema(
       trim: true,
       maxlength: 2000,
     },
+    deletedBy: [
+      {
+        type: mongoose.Schema.Types.ObjectId,
+        ref: "User",
+      },
+    ],
   },
   { timestamps: true }
 );
 
-// Speeds up loading a conversation between two users
 messageSchema.index({ sender: 1, receiver: 1, createdAt: 1 });
 
 const Message = mongoose.model("Message", messageSchema);

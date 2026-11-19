@@ -2,8 +2,9 @@ import { useEffect, useRef, useState } from "react";
 import api from "../api/axios";
 import { useAuth } from "../context/AuthContext";
 import { useSocket } from "../context/SocketContext";
+import Avatar from "./Avatar";
 
-export default function ChatWindow({ selectedUser, onBack }) {
+export default function ChatWindow({ selectedUser, onBack, onDeleted }) {
   const { user } = useAuth();
   const { socket, onlineUsers, connected } = useSocket();
   const [messages, setMessages] = useState([]);
@@ -17,13 +18,10 @@ export default function ChatWindow({ selectedUser, onBack }) {
 
   const isOnline = onlineUsers.includes(selectedUser._id);
 
-  // 1. Load history over REST whenever another user is selected
+  // 1. Load history over REST (the component remounts for each user
+  //    because of the key in Chat.jsx, so state always starts fresh)
   useEffect(() => {
     let cancelled = false;
-    setLoading(true);
-    setMessages([]);
-    setError("");
-    setIsTyping(false);
 
     api
       .get(`/messages/${selectedUser._id}`)
@@ -43,7 +41,7 @@ export default function ChatWindow({ selectedUser, onBack }) {
     };
   }, [selectedUser._id]);
 
-  // 2. Listen for live messages and typing events
+  // 2. Listen for live messages, typing events and conversation deletes
   useEffect(() => {
     if (!socket) return;
 
@@ -70,14 +68,21 @@ export default function ChatWindow({ selectedUser, onBack }) {
       if (senderId === selectedUser._id) setIsTyping(false);
     };
 
+    // I deleted this conversation in another tab, so clear it here too
+    const handleDeleted = ({ userId }) => {
+      if (userId === selectedUser._id) setMessages([]);
+    };
+
     socket.on("newMessage", handleNewMessage);
     socket.on("typing", handleTyping);
     socket.on("stopTyping", handleStopTyping);
+    socket.on("conversationDeleted", handleDeleted);
 
     return () => {
       socket.off("newMessage", handleNewMessage);
       socket.off("typing", handleTyping);
       socket.off("stopTyping", handleStopTyping);
+      socket.off("conversationDeleted", handleDeleted);
     };
   }, [socket, selectedUser._id, user._id]);
 
@@ -138,6 +143,22 @@ export default function ChatWindow({ selectedUser, onBack }) {
     setText("");
   };
 
+  const handleDelete = async () => {
+    const ok = window.confirm(
+      `Delete your conversation with ${selectedUser.username}? ` +
+        `This only removes it for you.`
+    );
+    if (!ok) return;
+
+    try {
+      await api.delete(`/messages/${selectedUser._id}`);
+      setMessages([]);
+      onDeleted?.();
+    } catch {
+      setError("Could not delete the conversation");
+    }
+  };
+
   const formatTime = (date) =>
     new Date(date).toLocaleTimeString([], {
       hour: "2-digit",
@@ -150,7 +171,7 @@ export default function ChatWindow({ selectedUser, onBack }) {
         <button className="back-btn" onClick={onBack} aria-label="Back">
           &larr;
         </button>
-        <div className="avatar">{selectedUser.username[0].toUpperCase()}</div>
+        <Avatar user={selectedUser} />
         <div className="user-info">
           <strong>{selectedUser.username}</strong>
           {isTyping ? (
@@ -161,6 +182,26 @@ export default function ChatWindow({ selectedUser, onBack }) {
             </small>
           )}
         </div>
+        <button
+          className="icon-btn"
+          onClick={handleDelete}
+          aria-label="Delete conversation"
+          title="Delete conversation"
+        >
+          <svg
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            strokeWidth="2"
+            strokeLinecap="round"
+            strokeLinejoin="round"
+          >
+            <polyline points="3 6 5 6 21 6" />
+            <path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6" />
+            <path d="M10 11v6M14 11v6" />
+            <path d="M9 6V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2" />
+          </svg>
+        </button>
       </div>
 
       <div className="messages">
@@ -191,8 +232,22 @@ export default function ChatWindow({ selectedUser, onBack }) {
           onChange={handleChange}
           maxLength={2000}
         />
-        <button type="submit" disabled={!text.trim() || !connected}>
-          Send
+        <button
+          type="submit"
+          aria-label="Send"
+          disabled={!text.trim() || !connected}
+        >
+          <svg
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            strokeWidth="2"
+            strokeLinecap="round"
+            strokeLinejoin="round"
+          >
+            <line x1="22" y1="2" x2="11" y2="13" />
+            <polygon points="22 2 15 22 11 13 2 9 22 2" />
+          </svg>
         </button>
       </form>
     </section>

@@ -1,3 +1,4 @@
+/* eslint-disable react-refresh/only-export-components */
 import { createContext, useContext, useState } from "react";
 
 const AuthContext = createContext(null);
@@ -20,6 +21,13 @@ export function AuthProvider({ children }) {
     setUser(data);
   };
 
+  // Merge changes (like a new avatar) into the stored user
+  const updateUser = (changes) => {
+    const next = { ...user, ...changes };
+    localStorage.setItem("user", JSON.stringify(next));
+    setUser(next);
+  };
+
   const logout = () => {
     localStorage.removeItem("token");
     localStorage.removeItem("user");
@@ -27,7 +35,7 @@ export function AuthProvider({ children }) {
   };
 
   return (
-    <AuthContext.Provider value={{ user, saveUser, logout }}>
+    <AuthContext.Provider value={{ user, saveUser, updateUser, logout }}>
       {children}
     </AuthContext.Provider>
   );

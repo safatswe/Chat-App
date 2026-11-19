@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import api from "../api/axios";
 import { useAuth } from "../context/AuthContext";
 import { useSocket } from "../context/SocketContext";
@@ -13,9 +13,7 @@ export default function Chat() {
   const [unread, setUnread] = useState({});
   const [error, setError] = useState("");
 
-  // Load users now, and again whenever someone connects or disconnects,
-  // so newly registered users appear without a page refresh
-  useEffect(() => {
+  const refreshUsers = useCallback(() => {
     api
       .get("/users")
       .then(({ data }) => {
@@ -23,15 +21,30 @@ export default function Chat() {
         setError("");
       })
       .catch(() => setError("Could not load users"));
-  }, [onlineUsers]);
+  }, []);
 
-  // Count incoming messages from chats that aren't currently open
+  useEffect(() => {
+    refreshUsers();
+  }, [onlineUsers, refreshUsers]);
+
+  useEffect(() => {
+    if (!socket) return;
+    socket.on("newMessage", refreshUsers);
+    socket.on("conversationDeleted", refreshUsers);
+    socket.on("usersChanged", refreshUsers);
+    return () => {
+      socket.off("newMessage", refreshUsers);
+      socket.off("conversationDeleted", refreshUsers);
+      socket.off("usersChanged", refreshUsers);
+    };
+  }, [socket, refreshUsers]);
+
   useEffect(() => {
     if (!socket) return;
 
     const handleNewMessage = (message) => {
-      if (message.receiver !== user._id) return; // ignore my own messages
-      if (selectedUser?._id === message.sender) return; // chat is open
+      if (message.receiver !== user._id) return;
+      if (selectedUser?._id === message.sender) return;
 
       setUnread((prev) => ({
         ...prev,
@@ -45,13 +58,21 @@ export default function Chat() {
 
   const handleSelect = (u) => {
     setSelectedUser(u);
-    // Opening a chat clears its unread badge
     setUnread((prev) => {
       const next = { ...prev };
       delete next[u._id];
       return next;
     });
   };
+
+  // After I delete a chat: close it and refresh the list
+  const handleDeleted = () => {
+    setSelectedUser(null);
+    refreshUsers();
+  };
+
+  const currentUser =
+    users.find((u) => u._id === selectedUser?._id) || selectedUser;
 
   return (
     <div className="chat-root">
@@ -73,12 +94,29 @@ export default function Chat() {
           {error && <div className="error">{error}</div>}
           {selectedUser ? (
             <ChatWindow
-              selectedUser={selectedUser}
+              key={selectedUser._id}
+              selectedUser={currentUser}
               onBack={() => setSelectedUser(null)}
+              onDeleted={handleDeleted}
             />
           ) : (
             <div className="empty-state">
-              <h2>Select a user to start chatting</h2>
+              <div className="logo">
+                <svg
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth="2"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                >
+                  <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" />
+                </svg>
+              </div>
+              <h2>Your messages</h2>
+              <p className="subtitle">
+                Select a chat, or search for a person to start a new one.
+              </p>
             </div>
           )}
         </main>
