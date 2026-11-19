@@ -74,10 +74,10 @@ export const initSocket = (httpServer) => {
     });
 
     // Typing indicator
-    socket.on("typing", ({ receiverId } = {}) => {
+       socket.on("typing", ({ receiverId } = {}) => {
+      console.log("typing from", userId, "to", receiverId);
       if (receiverId) io.to(receiverId).emit("typing", { senderId: userId });
     });
-
     socket.on("stopTyping", ({ receiverId } = {}) => {
       if (receiverId) io.to(receiverId).emit("stopTyping", { senderId: userId });
     });

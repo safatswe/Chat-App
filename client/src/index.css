@@ -290,4 +290,82 @@ button.small {
 .message-form button {
   border-radius: 24px;
   padding: 12px 22px;
+} 
+/* Day 6: layout wrapper, banner, badge, typing */
+.chat-root {
+  height: 100vh;
+  height: 100dvh;
+  display: flex;
+  flex-direction: column;
+}
+
+.chat-layout {
+  flex: 1;
+  min-height: 0;
+  height: auto;
+}
+
+.conn-banner {
+  background: #fff4e5;
+  color: #8a5300;
+  padding: 8px 16px;
+  font-size: 0.85rem;
+  text-align: center;
+}
+
+.badge {
+  margin-left: auto;
+  background: #e0245e;
+  color: #fff;
+  font-size: 0.75rem;
+  font-weight: 700;
+  min-width: 22px;
+  height: 22px;
+  padding: 0 6px;
+  border-radius: 11px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.typing {
+  color: #2e9e4f;
+  font-style: italic;
+}
+
+.back-btn {
+  display: none;
+  background: transparent;
+  color: #667eea;
+  padding: 4px 10px;
+  font-size: 1.4rem;
+  line-height: 1;
+}
+
+.back-btn:hover:not(:disabled) {
+  background: #eef0ff;
+}
+
+/* Phones and small tablets: show the list OR the chat, not both */
+@media (max-width: 768px) {
+  .sidebar {
+    width: 100%;
+    border-right: none;
+  }
+
+  .chat-layout.chat-open .sidebar {
+    display: none;
+  }
+
+  .chat-layout:not(.chat-open) .chat-main {
+    display: none;
+  }
+
+  .back-btn {
+    display: block;
+  }
+
+  .bubble {
+    max-width: 85%;
+  }
 }

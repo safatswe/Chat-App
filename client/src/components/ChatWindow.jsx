@@ -3,14 +3,19 @@ import api from "../api/axios";
 import { useAuth } from "../context/AuthContext";
 import { useSocket } from "../context/SocketContext";
 
-export default function ChatWindow({ selectedUser }) {
+export default function ChatWindow({ selectedUser, onBack }) {
   const { user } = useAuth();
-  const { socket } = useSocket();
+  const { socket, onlineUsers, connected } = useSocket();
   const [messages, setMessages] = useState([]);
   const [text, setText] = useState("");
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
+  const [isTyping, setIsTyping] = useState(false);
   const bottomRef = useRef(null);
+  const typingTimer = useRef(null);
+  const typingSent = useRef(false);
+
+  const isOnline = onlineUsers.includes(selectedUser._id);
 
   // 1. Load history over REST whenever another user is selected
   useEffect(() => {
@@ -18,6 +23,7 @@ export default function ChatWindow({ selectedUser }) {
     setLoading(true);
     setMessages([]);
     setError("");
+    setIsTyping(false);
 
     api
       .get(`/messages/${selectedUser._id}`)
@@ -37,7 +43,7 @@ export default function ChatWindow({ selectedUser }) {
     };
   }, [selectedUser._id]);
 
-  // 2. Listen for live messages over the socket
+  // 2. Listen for live messages and typing events
   useEffect(() => {
     if (!socket) return;
 
@@ -48,24 +54,78 @@ export default function ChatWindow({ selectedUser }) {
 
       if (!belongsToThisChat) return;
 
+      // A message from them means they've stopped typing
+      if (message.sender === selectedUser._id) setIsTyping(false);
+
       setMessages((prev) =>
         prev.some((m) => m._id === message._id) ? prev : [...prev, message]
       );
     };
 
+    const handleTyping = ({ senderId }) => {
+      if (senderId === selectedUser._id) setIsTyping(true);
+    };
+
+    const handleStopTyping = ({ senderId }) => {
+      if (senderId === selectedUser._id) setIsTyping(false);
+    };
+
     socket.on("newMessage", handleNewMessage);
-    return () => socket.off("newMessage", handleNewMessage);
+    socket.on("typing", handleTyping);
+    socket.on("stopTyping", handleStopTyping);
+
+    return () => {
+      socket.off("newMessage", handleNewMessage);
+      socket.off("typing", handleTyping);
+      socket.off("stopTyping", handleStopTyping);
+    };
   }, [socket, selectedUser._id, user._id]);
 
-  // 3. Scroll to the newest message
+  // 3. When switching chats, tell the old chat we stopped typing
+  useEffect(() => {
+    return () => {
+      clearTimeout(typingTimer.current);
+      if (typingSent.current && socket) {
+        socket.emit("stopTyping", { receiverId: selectedUser._id });
+      }
+      typingSent.current = false;
+    };
+  }, [socket, selectedUser._id]);
+
+  // 4. Scroll to the newest message
   useEffect(() => {
     bottomRef.current?.scrollIntoView({ behavior: "smooth" });
-  }, [messages]);
+  }, [messages, isTyping]);
+
+  const handleChange = (e) => {
+    setText(e.target.value);
+    if (!socket) return;
+
+    // Send "typing" only once, not on every keystroke
+    if (!typingSent.current) {
+      socket.emit("typing", { receiverId: selectedUser._id });
+      typingSent.current = true;
+    }
+
+    // Send "stopTyping" after 1.5 seconds without keystrokes
+    clearTimeout(typingTimer.current);
+    typingTimer.current = setTimeout(() => {
+      socket.emit("stopTyping", { receiverId: selectedUser._id });
+      typingSent.current = false;
+    }, 1500);
+  };
 
   const handleSend = (e) => {
     e.preventDefault();
     const trimmed = text.trim();
-    if (!trimmed || !socket) return;
+    if (!trimmed || !socket || !connected) return;
+
+    // Sending a message ends the typing state
+    clearTimeout(typingTimer.current);
+    if (typingSent.current) {
+      socket.emit("stopTyping", { receiverId: selectedUser._id });
+      typingSent.current = false;
+    }
 
     setError("");
     socket.emit(
@@ -87,8 +147,20 @@ export default function ChatWindow({ selectedUser }) {
   return (
     <section className="chat-window">
       <div className="chat-header">
+        <button className="back-btn" onClick={onBack} aria-label="Back">
+          &larr;
+        </button>
         <div className="avatar">{selectedUser.username[0].toUpperCase()}</div>
-        <strong>{selectedUser.username}</strong>
+        <div className="user-info">
+          <strong>{selectedUser.username}</strong>
+          {isTyping ? (
+            <small className="typing">typing...</small>
+          ) : (
+            <small className={isOnline ? "online" : "offline"}>
+              {isOnline ? "Online" : "Offline"}
+            </small>
+          )}
+        </div>
       </div>
 
       <div className="messages">
@@ -116,10 +188,10 @@ export default function ChatWindow({ selectedUser }) {
           type="text"
           placeholder="Type a message..."
           value={text}
-          onChange={(e) => setText(e.target.value)}
+          onChange={handleChange}
           maxLength={2000}
         />
-        <button type="submit" disabled={!text.trim()}>
+        <button type="submit" disabled={!text.trim() || !connected}>
           Send
         </button>
       </form>

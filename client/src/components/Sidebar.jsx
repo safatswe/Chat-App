@@ -1,7 +1,7 @@
 import { useAuth } from "../context/AuthContext";
 import { useSocket } from "../context/SocketContext";
 
-export default function Sidebar({ users, selectedUser, onSelect }) {
+export default function Sidebar({ users, selectedUser, onSelect, unread }) {
   const { user, logout } = useAuth();
   const { onlineUsers } = useSocket();
 
@@ -23,6 +23,7 @@ export default function Sidebar({ users, selectedUser, onSelect }) {
         )}
         {users.map((u) => {
           const isOnline = onlineUsers.includes(u._id);
+          const count = unread[u._id] || 0;
           return (
             <div
               key={u._id}
@@ -38,6 +39,7 @@ export default function Sidebar({ users, selectedUser, onSelect }) {
                   {isOnline ? "Online" : "Offline"}
                 </small>
               </div>
+              {count > 0 && <span className="badge">{count}</span>}
             </div>
           );
         })}
