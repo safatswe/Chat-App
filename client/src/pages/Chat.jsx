@@ -1,10 +1,11 @@
 import { useEffect, useState } from "react";
 import api from "../api/axios";
-import { useAuth } from "../context/AuthContext";
+import Sidebar from "../components/Sidebar";
+import ChatWindow from "../components/ChatWindow";
 
 export default function Chat() {
-  const { user, logout } = useAuth();
   const [users, setUsers] = useState([]);
+  const [selectedUser, setSelectedUser] = useState(null);
   const [error, setError] = useState("");
 
   useEffect(() => {
@@ -15,20 +16,23 @@ export default function Chat() {
   }, []);
 
   return (
-    <div className="placeholder">
-      <header>
-        <h2>Hi, {user.username}</h2>
-        <button onClick={logout}>Log out</button>
-      </header>
+    <div className="chat-layout">
+      <Sidebar
+        users={users}
+        selectedUser={selectedUser}
+        onSelect={setSelectedUser}
+      />
 
-      <h3>Users you can chat with</h3>
-      {error && <div className="error">{error}</div>}
-      <ul>
-        {users.map((u) => (
-          <li key={u._id}>{u.username}</li>
-        ))}
-      </ul>
-      <p className="subtitle">The chat window arrives on Day 5.</p>
+      <main className="chat-main">
+        {error && <div className="error">{error}</div>}
+        {selectedUser ? (
+          <ChatWindow selectedUser={selectedUser} />
+        ) : (
+          <div className="empty-state">
+            <h2>Select a user to start chatting</h2>
+          </div>
+        )}
+      </main>
     </div>
   );
 }
